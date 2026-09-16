@@ -1,0 +1,40 @@
+{
+    "name": "andalus/student-management-system",
+    "description": "Production-grade, educational Student Management System built from scratch in Vanilla PHP 8.2+, MVC, MySQL, and PDO.",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "vlucas/phpdotenv": "^5.6"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5 || ^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Seeders\\": "database/seeders/"
+        },
+        "files": [
+            "app/Helpers/auth.php",
+            "app/Helpers/response.php",
+            "app/Helpers/sanitize.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "migrate": "php database/migrate.php",
+        "seed": "php database/seeders/DatabaseSeeder.php",
+        "serve": "php -S localhost:8000 -t public"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true
+    }
+}

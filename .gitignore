@@ -1,0 +1,29 @@
+# Environment configuration
+.env
+.env.backup
+.env.production
+
+# Composer Vendor Dependencies
+/vendor/
+
+# Storage, Logs, and Cache
+/storage/logs/*.log
+/storage/cache/*
+!storage/cache/.gitkeep
+!storage/logs/.gitkeep
+
+# User Uploads (Avatars)
+/public/uploads/avatars/*
+!public/uploads/avatars/.gitkeep
+
+# IDE / OS specific files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+
+# PHPUnit & Testing artifacts
+.phpunit.result.cache
+/tests/_output/

@@ -1,0 +1,19 @@
+# ==============================================================
+# Apache Rewrite Rules for Student Management System
+# Directs all web traffic to public/index.php (Front Controller)
+# ==============================================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Stop processing if file or directory physically exists
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Rewrite all other requests to index.php
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+# Disable Directory Browsing for security
+Options -Indexes

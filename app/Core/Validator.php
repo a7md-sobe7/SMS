@@ -126,6 +126,15 @@ class Validator
                     }
                 }
                 break;
+
+            case 'same':
+                $targetField = $params[0] ?? '';
+                $targetValue = $this->data[$targetField] ?? null;
+                if ($value !== $targetValue) {
+                    $targetLabel = ucwords(str_replace('_', ' ', $targetField));
+                    $this->addError($field, "The {$label} and {$targetLabel} must match.");
+                }
+                break;
         }
     }
 

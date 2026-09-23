@@ -44,9 +44,25 @@ class Response
         return new self($content, $statusCode, ['Content-Type' => 'application/json; charset=utf-8']);
     }
 
+    public static function rawJson(array $payload, int $statusCode = 200): self
+    {
+        $content = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        return new self($content, $statusCode, ['Content-Type' => 'application/json; charset=utf-8']);
+    }
+
     public static function redirect(string $url, int $statusCode = 302): self
     {
         return new self('', $statusCode, ['Location' => $url]);
+    }
+
+    public function getStatusCode(): int
+    {
+        return $this->statusCode;
+    }
+
+    public function getContent(): string
+    {
+        return $this->content;
     }
 
     public function setStatusCode(int $code): self

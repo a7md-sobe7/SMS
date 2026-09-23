@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
-class AuditLogRepository extends BaseRepository
+use App\Contracts\Repositories\AuditLogRepositoryInterface;
+use PDO;
+
+class AuditLogRepository extends BaseRepository implements AuditLogRepositoryInterface
 {
     protected string $table = 'audit_logs';
 
@@ -14,7 +17,7 @@ class AuditLogRepository extends BaseRepository
     public function log(
         ?int $userId,
         string $action,
-        string $entityType,
+        ?string $entityType = null,
         ?int $entityId = null,
         array $details = [],
         ?string $ipAddress = null,
@@ -29,6 +32,14 @@ class AuditLogRepository extends BaseRepository
             'ip_address'  => $ipAddress ?? ($_SERVER['REMOTE_ADDR'] ?? null),
             'user_agent'  => $userAgent ?? ($_SERVER['HTTP_USER_AGENT'] ?? null),
         ]);
+    }
+
+    /**
+     * Retrieve recent system audit logs with user information.
+     */
+    public function getRecent(int $limit = 20): array
+    {
+        return $this->getRecentLogs($limit);
     }
 
     /**
@@ -49,7 +60,7 @@ class AuditLogRepository extends BaseRepository
         ";
 
         $stmt = $this->db->prepare($sql);
-        $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll();
     }

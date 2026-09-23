@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
-class StudentRepository extends BaseRepository
+use App\Contracts\Repositories\StudentRepositoryInterface;
+
+class StudentRepository extends BaseRepository implements StudentRepositoryInterface
 {
     protected string $table = 'students';
 
@@ -16,6 +18,11 @@ class StudentRepository extends BaseRepository
     public function findByStudentCode(string $code): ?array
     {
         return $this->findOneBy(['student_code' => $code]);
+    }
+
+    public function findByCode(string $studentCode): ?array
+    {
+        return $this->findByStudentCode($studentCode);
     }
 
     public function findByEmail(string $email): ?array
@@ -49,7 +56,7 @@ class StudentRepository extends BaseRepository
      * Advanced Search, Filter and Paginate Students
      */
     public function searchAndFilter(
-        string $search = '',
+        ?string $search = null,
         ?int $departmentId = null,
         ?string $academicLevel = null,
         ?string $status = null,

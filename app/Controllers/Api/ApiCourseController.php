@@ -5,74 +5,81 @@ declare(strict_types=1);
 namespace App\Controllers\Api;
 
 use App\Core\Controller;
+use App\Core\Gate;
 use App\Core\Request;
-use App\Core\Validator;
-use App\Repositories\CourseRepository;
-use App\Repositories\AuditLogRepository;
+use App\Core\Response;
+use App\Http\Requests\Course\StoreCourseRequest;
+use App\Http\Requests\Course\UpdateCourseRequest;
+use App\Http\Resources\CourseResource;
+use App\Services\CourseService;
 
 class ApiCourseController extends Controller
 {
-    private CourseRepository $courseRepo;
-    private AuditLogRepository $auditRepo;
+    public function __construct(
+        private CourseService $courseService,
+        private Gate $gate
+    ) {}
 
-    public function __construct()
+    public function index(Request $request): Response
     {
-        $this->courseRepo = new CourseRepository();
-        $this->auditRepo = new AuditLogRepository();
-    }
+        $this->gate->authorize('viewAny', 'course');
 
-    public function index(Request $request): void
-    {
         $deptId = $request->input('department_id') ? (int)$request->input('department_id') : null;
-        $courses = $this->courseRepo->findAllWithDetails($deptId);
-        json_response($courses, 200);
+        $instructorId = $request->input('instructor_id') ? (int)$request->input('instructor_id') : null;
+
+        $courses = $this->courseService->listCourses($deptId, $instructorId);
+        $transformed = CourseResource::collection($courses, $request);
+
+        return Response::rawJson([
+            'success' => true,
+            'message' => 'Courses retrieved successfully.',
+            'data'    => $transformed
+        ], 200);
     }
 
-    public function show(Request $request): void
+    public function show(Request $request): Response
     {
         $id = (int)$request->param('id');
-        $course = $this->courseRepo->findWithDetails($id);
+        $this->gate->authorize('view', 'course');
 
-        if (!$course) {
-            json_response(null, 404, 'Course not found.');
-        }
+        $details = $this->courseService->getCourseDetails($id);
+        $transformed = CourseResource::make($details['course'])->toArray($request);
+        $transformed['roster'] = $details['roster'];
 
-        json_response($course, 200);
+        return Response::rawJson([
+            'success' => true,
+            'message' => 'Course details retrieved.',
+            'data'    => $transformed
+        ], 200);
     }
 
-    public function store(Request $request): void
+    public function store(StoreCourseRequest $request): Response
     {
-        $data = $request->all();
+        $id = $this->courseService->createCourse($request->toDTO(), auth_id());
+        $course = $this->courseService->getById($id);
 
-        $validator = Validator::make($data, [
-            'course_code'   => 'required|min:3|max:20',
-            'course_name'   => 'required|min:3|max:100',
-            'department_id' => 'required|numeric',
-            'credit_hours'  => 'required|numeric|min:1|max:6',
-            'semester'      => 'required|in:Fall,Spring,Summer',
-            'academic_year' => 'required|numeric',
-            'capacity'      => 'required|numeric|min:1|max:500'
-        ]);
+        return CourseResource::make($course)->toResponse($request, 201, 'Course created successfully.');
+    }
 
-        if ($validator->fails()) {
-            json_response(null, 422, 'Validation failed.', $validator->errors());
-        }
+    public function update(UpdateCourseRequest $request): Response
+    {
+        $id = (int)$request->param('id');
+        $this->courseService->updateCourse($id, $request->toDTO(), auth_id());
+        $course = $this->courseService->getById($id);
 
-        $id = $this->courseRepo->create([
-            'course_code'   => strtoupper(trim($data['course_code'])),
-            'course_name'   => trim($data['course_name']),
-            'description'   => trim($data['description'] ?? ''),
-            'department_id' => (int)$data['department_id'],
-            'instructor_id' => !empty($data['instructor_id']) ? (int)$data['instructor_id'] : null,
-            'credit_hours'  => (int)$data['credit_hours'],
-            'semester'      => $data['semester'],
-            'academic_year' => (int)$data['academic_year'],
-            'capacity'      => (int)$data['capacity'],
-        ]);
+        return CourseResource::make($course)->toResponse($request, 200, 'Course updated successfully.');
+    }
 
-        $this->auditRepo->log(auth_id(), 'API_COURSE_CREATED', 'Course', $id);
-        $course = $this->courseRepo->findWithDetails($id);
+    public function destroy(Request $request): Response
+    {
+        $id = (int)$request->param('id');
+        $this->gate->authorize('delete', 'course');
 
-        json_response($course, 201, 'Course created successfully.');
+        $this->courseService->deleteCourse($id);
+
+        return Response::rawJson([
+            'success' => true,
+            'message' => 'Course deleted successfully.'
+        ], 200);
     }
 }

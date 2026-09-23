@@ -6,54 +6,77 @@ namespace App\Controllers\Api;
 
 use App\Core\Controller;
 use App\Core\Request;
-use App\Core\Validator;
+use App\Core\Response;
+use App\DTOs\Auth\LoginDTO;
+use App\Exceptions\AuthenticationException;
+use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Resources\UserResource;
 use App\Services\AuthService;
 
 class ApiAuthController extends Controller
 {
-    private AuthService $authService;
+    public function __construct(private AuthService $authService) {}
 
-    public function __construct()
+    public function login(Request $request): Response
     {
-        $this->authService = new AuthService();
-    }
-
-    public function login(Request $request): void
-    {
-        $identifier = (string)$request->input('identifier', '');
+        $identifier = (string)($request->input('identifier') ?? $request->input('username', ''));
         $password   = (string)$request->input('password', '');
 
-        $validator = Validator::make([
-            'identifier' => $identifier,
-            'password'   => $password
-        ], [
-            'identifier' => 'required',
-            'password'   => 'required'
-        ]);
-
-        if ($validator->fails()) {
-            json_response(null, 422, 'Validation failed.', $validator->errors());
+        if ($identifier === '' || $password === '') {
+            throw new AuthenticationException('Please provide both username/email and password.');
         }
 
-        if (!$this->authService->attempt($identifier, $password)) {
-            json_response(null, 401, 'Invalid username/email or password.');
+        $dto = new LoginDTO(username: $identifier, password: $password);
+
+        if (!$this->authService->attempt($dto)) {
+            throw new AuthenticationException('Invalid username/email or password.');
         }
 
-        json_response([
-            'user' => auth_user()
-        ], 200, 'Authentication successful.');
-    }
+        $user = auth_user();
+        $userResource = UserResource::make($user)->toArray($request);
 
-    public function me(Request $request): void
-    {
-        json_response([
-            'user' => auth_user()
+        return Response::rawJson([
+            'success' => true,
+            'message' => 'Authentication successful.',
+            'data'    => array_merge(['user' => $userResource], $userResource)
         ], 200);
     }
 
-    public function logout(Request $request): void
+    public function register(RegisterRequest $request): Response
+    {
+        $dto = $request->toDTO();
+        $user = $this->authService->register($dto);
+        $userResource = UserResource::make($user)->toArray($request);
+
+        return Response::rawJson([
+            'success' => true,
+            'message' => 'Account successfully created!',
+            'data'    => array_merge(['user' => $userResource], $userResource)
+        ], 201);
+    }
+
+    public function me(Request $request): Response
+    {
+        $user = auth_user();
+        if (!$user) {
+            throw new AuthenticationException('Unauthenticated session.');
+        }
+
+        $userResource = UserResource::make($user)->toArray($request);
+
+        return Response::rawJson([
+            'success' => true,
+            'message' => 'Profile retrieved.',
+            'data'    => array_merge(['user' => $userResource], $userResource)
+        ], 200);
+    }
+
+    public function logout(Request $request): Response
     {
         $this->authService->logout();
-        json_response(null, 200, 'Logged out successfully.');
+        return Response::rawJson([
+            'success' => true,
+            'message' => 'Logged out successfully.'
+        ], 200);
     }
 }

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
-class GradeRepository extends BaseRepository
+use App\Contracts\Repositories\GradeRepositoryInterface;
+
+class GradeRepository extends BaseRepository implements GradeRepositoryInterface
 {
     protected string $table = 'grades';
 

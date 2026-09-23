@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
-class CourseRepository extends BaseRepository
+use App\Contracts\Repositories\CourseRepositoryInterface;
+
+class CourseRepository extends BaseRepository implements CourseRepositoryInterface
 {
     protected string $table = 'courses';
 

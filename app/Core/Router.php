@@ -4,22 +4,27 @@ declare(strict_types=1);
 
 namespace App\Core;
 
+use App\Exceptions\ModelNotFoundException;
 use App\Middleware\MiddlewareInterface;
+use ReflectionClass;
+use ReflectionMethod;
+use ReflectionNamedType;
 use RuntimeException;
 
 /**
- * RESTful Regex Routing Engine with Parameter Extraction and Middleware Pipelines
+ * RESTful Regex Routing Engine with Dependency Injection & FormRequest Auto-wiring
  */
 class Router
 {
     private array $routes = [];
     private array $groupStack = [];
-    private array $namedRoutes = [];
     private static ?self $instance = null;
+    private Container $container;
 
-    public function __construct()
+    public function __construct(?Container $container = null)
     {
         self::$instance = $this;
+        $this->container = $container ?? Container::getInstance();
     }
 
     public static function getInstance(): self
@@ -107,13 +112,13 @@ class Router
 
             if (preg_match($route['regex'], $requestPath, $matches)) {
                 // Extract named route parameters
-                $params = [];
+                $routeParams = [];
                 foreach ($matches as $key => $value) {
                     if (is_string($key)) {
-                        $params[$key] = $value;
+                        $routeParams[$key] = $value;
                     }
                 }
-                $request->setRouteParams($params);
+                $request->setRouteParams($routeParams);
 
                 // 1. Run Middleware Pipeline
                 foreach ($route['middleware'] as $mw) {
@@ -127,7 +132,6 @@ class Router
 
                     if (is_string($mwClass)) {
                         if (!class_exists($mwClass)) {
-                            // Try App\Middleware namespace prefix
                             $fullMwClass = "\\App\\Middleware\\" . $mwClass;
                             if (class_exists($fullMwClass)) {
                                 $mwClass = $fullMwClass;
@@ -135,7 +139,7 @@ class Router
                                 throw new RuntimeException("Middleware class not found: {$mwClass}");
                             }
                         }
-                        $instance = new $mwClass();
+                        $instance = $this->container->make($mwClass);
                     } else {
                         $instance = $mwClass;
                     }
@@ -143,16 +147,16 @@ class Router
                     if ($instance instanceof MiddlewareInterface) {
                         $result = $instance->handle($request, $mwArgs);
                         if ($result !== null) {
-                            return $result; // Middleware halted execution (e.g. redirected or returned JSON error)
+                            return $result;
                         }
                     }
                 }
 
-                // 2. Execute Action
+                // 2. Execute Action with Dependency Injection
                 $action = $route['action'];
 
                 if (is_callable($action)) {
-                    return call_user_func($action, $request);
+                    return $this->container->call($action, ['request' => $request]);
                 }
 
                 if (is_array($action) && count($action) === 2) {
@@ -162,25 +166,59 @@ class Router
                         throw new RuntimeException("Controller class not found: {$controllerClass}");
                     }
 
-                    $controller = new $controllerClass();
+                    $controller = $this->container->make($controllerClass);
                     if (!method_exists($controller, $method)) {
                         throw new RuntimeException("Method '{$method}' not found on controller '{$controllerClass}'");
                     }
 
-                    return $controller->$method($request);
+                    // Resolve method parameters (FormRequests, Request, Route Params, Services)
+                    $refMethod = new ReflectionMethod($controller, $method);
+                    $args = [];
+
+                    foreach ($refMethod->getParameters() as $param) {
+                        $paramName = $param->getName();
+                        $paramType = $param->getType();
+
+                        if ($paramType instanceof ReflectionNamedType && !$paramType->isBuiltin()) {
+                            $className = $paramType->getName();
+
+                            // Auto-wire FormRequest with automatic validation & authorization!
+                            if (is_subclass_of($className, FormRequest::class)) {
+                                $args[] = $className::createFromRequest($request);
+                                continue;
+                            }
+
+                            // Inject Request instance
+                            if ($className === Request::class || is_subclass_of($className, Request::class)) {
+                                $args[] = $request;
+                                continue;
+                            }
+
+                            // Resolve domain dependency from Container
+                            $args[] = $this->container->make($className);
+                            continue;
+                        }
+
+                        // Check if named route parameter exists
+                        if (array_key_exists($paramName, $routeParams)) {
+                            $args[] = $routeParams[$paramName];
+                        } elseif ($param->isDefaultValueAvailable()) {
+                            $args[] = $param->getDefaultValue();
+                        } elseif ($param->allowsNull()) {
+                            $args[] = null;
+                        } else {
+                            $args[] = null;
+                        }
+                    }
+
+                    return $refMethod->invokeArgs($controller, $args);
                 }
 
                 throw new RuntimeException("Invalid route action defined for: {$requestPath}");
             }
         }
 
-        // 404 Not Found Handler
-        if ($request->isAjax() || str_starts_with($requestPath, '/api/')) {
-            json_response(null, 404, "Endpoint not found: [{$requestMethod}] {$requestPath}");
-        }
-
-        http_response_code(404);
-        view('errors/404', ['path' => $requestPath], 'main');
-        return null;
+        // Throw Model/Route Not Found Exception
+        throw new ModelNotFoundException('Route', [], "Endpoint not found: [{$requestMethod}] {$requestPath}");
     }
 }

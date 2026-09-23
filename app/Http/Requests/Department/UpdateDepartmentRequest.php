@@ -1,0 +1,32 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Requests\Department;
+
+use App\Core\FormRequest;
+use App\Core\Gate;
+use App\DTOs\Department\DepartmentDTO;
+
+class UpdateDepartmentRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return Gate::getInstance()->allows('update', 'department');
+    }
+
+    public function rules(): array
+    {
+        $id = (int)$this->param('id');
+
+        return [
+            'name' => 'required|min:2|max:100',
+            'code' => "required|min:2|max:10|unique:departments,code,{$id},id",
+        ];
+    }
+
+    public function toDTO(): DepartmentDTO
+    {
+        return DepartmentDTO::fromArray($this->validated());
+    }
+}

@@ -1,0 +1,8 @@
+O:27:"App\Jobs\ProcessAuditLogJob":7:{s:6:"userId";i:1;s:6:"action";s:10:"USER_LOGIN";s:10:"entityType";s:4:"User";s:8:"entityId";i:1;s:7:"details";a:2:{s:8:"username";s:5:"admin";s:4:"role";s:5:"admin";}s:9:"ipAddress";s:3:"::1";s:9:"userAgent";N;}
+--JOB_DELIMITER--
+O:27:"App\Jobs\ProcessAuditLogJob":7:{s:6:"userId";i:2;s:6:"action";s:10:"USER_LOGIN";s:10:"entityType";s:4:"User";s:8:"entityId";i:2;s:7:"details";a:2:{s:8:"username";s:9:"registrar";s:4:"role";s:9:"registrar";}s:9:"ipAddress";s:3:"::1";s:9:"userAgent";N;}
+--JOB_DELIMITER--
+O:27:"App\Jobs\ProcessAuditLogJob":7:{s:6:"userId";i:1;s:6:"action";s:10:"USER_LOGIN";s:10:"entityType";s:4:"User";s:8:"entityId";i:1;s:7:"details";a:2:{s:8:"username";s:5:"admin";s:4:"role";s:5:"admin";}s:9:"ipAddress";s:3:"::1";s:9:"userAgent";N;}
+--JOB_DELIMITER--
+O:27:"App\Jobs\ProcessAuditLogJob":7:{s:6:"userId";i:1;s:6:"action";s:16:"STUDENT_ENROLLED";s:10:"entityType";s:10:"Enrollment";s:8:"entityId";i:3;s:7:"details";a:2:{s:10:"student_id";i:4;s:9:"course_id";i:2;}s:9:"ipAddress";N;s:9:"userAgent";N;}
+--JOB_DELIMITER--

@@ -152,13 +152,21 @@ Execute the automated migration CLI runner:
 php database/migrate.php
 ```
 
-### 4. Start the Local Server
+### 4. Start the Application
+
+**Terminal 1 (PHP Backend API):**
 ```bash
 php -S localhost:8000 -t public
 ```
 
+**Terminal 2 (React Single Page Application):**
+```bash
+npm install
+npm run dev
+```
+
 ### 5. Access the Web Application
-Open **[http://localhost:8000](http://localhost:8000)** in your browser.
+Open **[http://localhost:3000](http://localhost:3000)** (or the URL displayed in your Vite terminal) in your browser.
 
 ---
 

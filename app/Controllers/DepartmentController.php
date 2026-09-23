@@ -5,26 +5,23 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Core\Gate;
 use App\Core\Request;
-use App\Core\Session;
-use App\Core\Validator;
-use App\Repositories\DepartmentRepository;
-use App\Repositories\AuditLogRepository;
+use App\Http\Requests\Department\StoreDepartmentRequest;
+use App\Http\Requests\Department\UpdateDepartmentRequest;
+use App\Services\DepartmentService;
 
 class DepartmentController extends Controller
 {
-    private DepartmentRepository $deptRepo;
-    private AuditLogRepository $auditRepo;
-
-    public function __construct()
-    {
-        $this->deptRepo = new DepartmentRepository();
-        $this->auditRepo = new AuditLogRepository();
-    }
+    public function __construct(
+        private DepartmentService $departmentService,
+        private Gate $gate
+    ) {}
 
     public function index(Request $request): void
     {
-        $departments = $this->deptRepo->getWithStatistics();
+        $this->gate->authorize('viewAny', 'department');
+        $departments = $this->departmentService->getWithStatistics();
 
         $this->render('departments/index', [
             'pageTitle'   => 'Academic Departments',
@@ -32,61 +29,16 @@ class DepartmentController extends Controller
         ]);
     }
 
-    public function store(Request $request): void
+    public function store(StoreDepartmentRequest $request): void
     {
-        $data = $request->all();
-
-        $validator = Validator::make($data, [
-            'code' => 'required|min:2|max:10|unique:departments,code',
-            'name' => 'required|min:3|max:100',
-        ]);
-
-        if ($validator->fails()) {
-            Session::flash('errors', $validator->errors());
-            Session::flash('_old_input', $data);
-            Session::flash('error', 'Please resolve department form errors.');
-            redirect('/departments');
-        }
-
-        $id = $this->deptRepo->create([
-            'code'        => strtoupper(trim($data['code'])),
-            'name'        => trim($data['name']),
-            'description' => trim($data['description'] ?? ''),
-        ]);
-
-        $this->auditRepo->log(auth_id(), 'DEPARTMENT_CREATED', 'Department', $id, ['code' => $data['code']]);
+        $this->departmentService->create($request->toDTO());
         $this->redirectWith('/departments', 'success', 'Department created successfully!');
     }
 
-    public function update(Request $request): void
+    public function update(UpdateDepartmentRequest $request): void
     {
         $id = (int)$request->param('id');
-        $dept = $this->deptRepo->find($id);
-
-        if (!$dept) {
-            $this->redirectWith('/departments', 'error', 'Department not found.');
-        }
-
-        $data = $request->all();
-
-        $validator = Validator::make($data, [
-            'code' => "required|min:2|max:10|unique:departments,code,{$id},id",
-            'name' => 'required|min:3|max:100',
-        ]);
-
-        if ($validator->fails()) {
-            Session::flash('errors', $validator->errors());
-            Session::flash('error', 'Please resolve department update errors.');
-            redirect('/departments');
-        }
-
-        $this->deptRepo->update($id, [
-            'code'        => strtoupper(trim($data['code'])),
-            'name'        => trim($data['name']),
-            'description' => trim($data['description'] ?? ''),
-        ]);
-
-        $this->auditRepo->log(auth_id(), 'DEPARTMENT_UPDATED', 'Department', $id, ['code' => $data['code']]);
+        $this->departmentService->update($id, $request->toDTO());
         $this->redirectWith('/departments', 'success', 'Department updated successfully!');
     }
 }

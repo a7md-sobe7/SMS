@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
-class AttendanceRepository extends BaseRepository
+use App\Contracts\Repositories\AttendanceRepositoryInterface;
+
+class AttendanceRepository extends BaseRepository implements AttendanceRepositoryInterface
 {
     protected string $table = 'attendance';
 

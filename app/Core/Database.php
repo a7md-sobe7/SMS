@@ -64,9 +64,17 @@ class Database
             try {
                 self::$instance = new PDO($dsn, $user, $password, $options);
             } catch (PDOException $e) {
-                // Log technical error securely, never expose database credentials to the user
+                // Log technical error securely
                 error_log("[Database Connection Error] " . $e->getMessage());
-                throw new RuntimeException("Could not connect to the database. Please check your system configuration.");
+                
+                $message = "Could not connect to the database.";
+                if (env('APP_DEBUG', false)) {
+                    $message .= " Reason: " . $e->getMessage();
+                } else {
+                    $message .= " Please check your system configuration.";
+                }
+
+                throw new RuntimeException($message);
             }
         }
 

@@ -5,75 +5,39 @@ declare(strict_types=1);
 namespace App\Controllers\Api;
 
 use App\Core\Controller;
+use App\Core\Gate;
 use App\Core\Request;
-use App\Core\Validator;
-use App\Repositories\GradeRepository;
-use App\Repositories\AuditLogRepository;
+use App\Core\Response;
+use App\Http\Requests\Grade\UpsertGradeRequest;
+use App\Http\Resources\GradeResource;
+use App\Services\GradeService;
 
 class ApiGradeController extends Controller
 {
-    private GradeRepository $gradeRepo;
-    private AuditLogRepository $auditRepo;
+    public function __construct(
+        private GradeService $gradeService,
+        private Gate $gate
+    ) {}
 
-    public function __construct()
+    public function index(Request $request): Response
     {
-        $this->gradeRepo = new GradeRepository();
-        $this->auditRepo = new AuditLogRepository();
+        $this->gate->authorize('viewAny', 'grade');
+
+        $courseId = $request->input('course_id') ? (int)$request->input('course_id') : null;
+        $overview = $this->gradeService->getGradeOverview($courseId);
+
+        return Response::rawJson([
+            'success' => true,
+            'message' => 'Grades retrieved.',
+            'data'    => $overview
+        ], 200);
     }
 
-    public function upsert(Request $request): void
+    public function upsert(UpsertGradeRequest $request): Response
     {
-        $data = $request->all();
+        $dto = $request->toDTO();
+        $result = $this->gradeService->evaluateAndUpsertGrade($dto, auth_id());
 
-        $validator = Validator::make($data, [
-            'enrollment_id'    => 'required|numeric',
-            'assignment_grade' => 'required|numeric|min:0|max:100',
-            'midterm_grade'    => 'required|numeric|min:0|max:100',
-            'final_grade'      => 'required|numeric|min:0|max:100'
-        ]);
-
-        if ($validator->fails()) {
-            json_response(null, 422, 'Validation failed.', $validator->errors());
-        }
-
-        $assignment = (float)$data['assignment_grade'];
-        $midterm    = (float)$data['midterm_grade'];
-        $final      = (float)$data['final_grade'];
-
-        $gradingConfig = require dirname(__DIR__, 3) . '/config/grading.php';
-        $weights = $gradingConfig['weights'];
-
-        $totalGrade = round(
-            ($assignment * $weights['assignment']) +
-            ($midterm * $weights['midterm']) +
-            ($final * $weights['final']),
-            2
-        );
-
-        $letterGrade = 'F';
-        $remarks = 'Fail';
-
-        foreach ($gradingConfig['scale'] as $tier) {
-            if ($totalGrade >= $tier['min'] && $totalGrade <= $tier['max']) {
-                $letterGrade = $tier['letter'];
-                $remarks = $tier['remark'];
-                break;
-            }
-        }
-
-        $gradeId = $this->gradeRepo->upsert([
-            'enrollment_id'    => (int)$data['enrollment_id'],
-            'assignment_grade' => $assignment,
-            'midterm_grade'    => $midterm,
-            'final_grade'      => $final,
-            'total_grade'      => $totalGrade,
-            'letter_grade'     => $letterGrade,
-            'remarks'          => $remarks
-        ]);
-
-        $this->auditRepo->log(auth_id(), 'API_GRADE_UPDATED', 'Grade', $gradeId);
-        $grade = $this->gradeRepo->find($gradeId);
-
-        json_response($grade, 200, 'Grade recorded successfully.');
+        return GradeResource::make($result)->toResponse($request, 200, 'Grade recorded successfully.');
     }
 }

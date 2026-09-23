@@ -2,18 +2,50 @@
 
 declare(strict_types=1);
 
+use App\Core\Container;
+use App\Core\Events\EventDispatcher;
+use App\Core\Gate;
+
+if (!function_exists('app')) {
+    /**
+     * Get the available container instance or resolve a binding.
+     */
+    function app(?string $abstract = null, array $parameters = []): mixed
+    {
+        $container = Container::getInstance();
+        if ($abstract === null) {
+            return $container;
+        }
+        return $container->make($abstract, $parameters);
+    }
+}
+
+if (!function_exists('event')) {
+    /**
+     * Dispatch an event and call the registered listeners.
+     */
+    function event(object $event): array
+    {
+        return EventDispatcher::getInstance()->dispatch($event);
+    }
+}
+
+if (!function_exists('gate')) {
+    /**
+     * Retrieve the Gate authorization manager.
+     */
+    function gate(): Gate
+    {
+        return Gate::getInstance();
+    }
+}
+
 if (!function_exists('json_response')) {
     /**
      * Send a standardized JSON response and terminate script execution.
-     * 
-     * @param mixed $data Payload to return under 'data' key or custom object.
-     * @param int $statusCode HTTP status code (default 200).
-     * @param string $message User/developer feedback message.
-     * @param array $errors Validation or error dictionary.
      */
-    function json_response(mixed $data = null, int $statusCode = 200, string $message = '', array $errors = []): void
+    function json_response(mixed $data = null, int $statusCode = 200, string $message = '', array $errors = [], array $meta = []): void
     {
-        // Clear any previous output buffers to guarantee clean JSON
         if (ob_get_level() > 0) {
             ob_clean();
         }
@@ -28,10 +60,10 @@ if (!function_exists('json_response')) {
             'message'   => $message,
             'data'      => $data,
             'errors'    => !empty($errors) ? $errors : null,
-            'meta'      => [
+            'meta'      => array_merge([
                 'timestamp' => gmdate('Y-m-d\TH:i:s\Z'),
                 'code'      => $statusCode
-            ]
+            ], $meta)
         ];
 
         echo json_encode($response, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -53,10 +85,6 @@ if (!function_exists('redirect')) {
 if (!function_exists('view')) {
     /**
      * Render a server-side PHP view template wrapped inside a master layout.
-     * 
-     * @param string $viewPath Dot-notated or slash path (e.g. 'students.index' or 'students/index').
-     * @param array $data Variables to extract into the view's scope.
-     * @param string|null $layout Layout file inside views/layouts/ or null for no layout.
      */
     function view(string $viewPath, array $data = [], ?string $layout = 'main'): void
     {

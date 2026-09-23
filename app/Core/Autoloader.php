@@ -74,6 +74,7 @@ class Autoloader
     private static function loadHelpers(): void
     {
         $helpers = [
+            dirname(__DIR__) . '/Helpers/env.php',
             dirname(__DIR__) . '/Helpers/auth.php',
             dirname(__DIR__) . '/Helpers/response.php',
             dirname(__DIR__) . '/Helpers/sanitize.php',

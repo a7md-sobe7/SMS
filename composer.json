@@ -16,6 +16,7 @@
             "Database\\Seeders\\": "database/seeders/"
         },
         "files": [
+            "app/Helpers/env.php",
             "app/Helpers/auth.php",
             "app/Helpers/response.php",
             "app/Helpers/sanitize.php"

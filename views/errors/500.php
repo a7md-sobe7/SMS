@@ -3,27 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>500 Internal Server Error</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <title>500 Internal Error - Student Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
 </head>
-<body class="bg-light d-flex align-items-center justify-content-center min-vh-100">
-    <div class="container p-4" style="max-width: 800px;">
-        <div class="card border-danger shadow p-4 text-center">
-            <div class="display-1 text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> 500</div>
-            <h3 class="fw-bold mt-3">Internal Server Error</h3>
-            <p class="text-muted">A server error occurred while processing your request.</p>
-
-            <?php if (!empty($isDebug) && !empty($exception)): ?>
-                <div class="alert alert-danger text-start mt-3">
-                    <div class="fw-bold fs-6 mb-2"><?= htmlspecialchars($exception->getMessage()) ?></div>
-                    <div class="small text-muted mb-2">Location: <?= htmlspecialchars($exception->getFile()) ?>:<?= (int)$exception->getLine() ?></div>
-                    <pre class="bg-dark text-white p-3 rounded small mb-0" style="max-height: 300px; overflow: auto;"><?= htmlspecialchars($exception->getTraceAsString()) ?></pre>
+<body class="bg-light d-flex align-items-center min-vh-100">
+    <div class="container text-center">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow-sm border-0 p-4">
+                    <div class="mb-3 text-danger">
+                        <i class="bi bi-exclamation-triangle" style="font-size: 4rem;"></i>
+                    </div>
+                    <h1 class="display-4 fw-bold text-dark">500</h1>
+                    <h4 class="mb-3">Internal Server Error</h4>
+                    <p class="text-muted mb-4"><?= htmlspecialchars($exception->getMessage() ?? 'An unexpected error occurred.') ?></p>
+                    <div>
+                        <a href="/dashboard" class="btn btn-primary px-4"><i class="bi bi-house me-2"></i>Return to Dashboard</a>
+                    </div>
                 </div>
-            <?php endif; ?>
-
-            <div class="mt-3">
-                <a href="/login" class="btn btn-primary"><i class="bi bi-arrow-clockwise me-1"></i> Retry Login</a>
             </div>
         </div>
     </div>

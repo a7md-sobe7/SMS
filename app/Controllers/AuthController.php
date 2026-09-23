@@ -7,17 +7,13 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Core\Request;
 use App\Core\Session;
-use App\Core\Validator;
+use App\DTOs\Auth\LoginDTO;
+use App\Http\Requests\Auth\LoginRequest;
 use App\Services\AuthService;
 
 class AuthController extends Controller
 {
-    private AuthService $authService;
-
-    public function __construct()
-    {
-        $this->authService = new AuthService();
-    }
+    public function __construct(private AuthService $authService) {}
 
     public function showLoginForm(Request $request): void
     {
@@ -32,30 +28,26 @@ class AuthController extends Controller
 
     public function login(Request $request): void
     {
-        $identifier = trim((string)$request->input('identifier', ''));
+        $identifier = trim((string)($request->input('identifier') ?? $request->input('username', '')));
         $password   = (string)$request->input('password', '');
 
-        $validator = Validator::make([
-            'identifier' => $identifier,
-            'password'   => $password
-        ], [
-            'identifier' => 'required',
-            'password'   => 'required'
-        ]);
-
-        if ($validator->fails()) {
+        if ($identifier === '' || $password === '') {
             Session::flash('error', 'Please enter your username/email and password.');
             Session::flash('_old_input', ['identifier' => $identifier]);
             redirect('/login');
+            return;
         }
 
-        if (!$this->authService->attempt($identifier, $password)) {
+        $dto = new LoginDTO(username: $identifier, password: $password);
+
+        if (!$this->authService->attempt($dto)) {
             Session::flash('error', 'Invalid credentials or inactive account.');
             Session::flash('_old_input', ['identifier' => $identifier]);
             redirect('/login');
+            return;
         }
 
-        Session::flash('success', 'Welcome back, ' . htmlspecialchars(auth_user()['username']) . '!');
+        Session::flash('success', 'Welcome back, ' . htmlspecialchars(auth_user()['username'] ?? '') . '!');
         redirect('/dashboard');
     }
 

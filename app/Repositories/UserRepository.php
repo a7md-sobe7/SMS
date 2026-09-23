@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
-class UserRepository extends BaseRepository
+use App\Contracts\Repositories\UserRepositoryInterface;
+
+class UserRepository extends BaseRepository implements UserRepositoryInterface
 {
     protected string $table = 'users';
 

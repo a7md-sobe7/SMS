@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
-class EnrollmentRepository extends BaseRepository
+use App\Contracts\Repositories\EnrollmentRepositoryInterface;
+
+class EnrollmentRepository extends BaseRepository implements EnrollmentRepositoryInterface
 {
     protected string $table = 'enrollments';
 
